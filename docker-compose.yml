@@ -1,0 +1,21 @@
+services:
+  cs16-xashds:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        XASH_RELEASE_TAG: continuous-gha-arm
+        XASHDS_TARBALL: xashds-linux-arm64.tar.gz
+    image: cs16-xashds:arm64
+    platform: linux/arm64
+    container_name: cs16-xashds
+    restart: unless-stopped
+    environment:
+      MAP: de_dust2
+      MAXPLAYERS: 16
+      PORT: 27015
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    volumes:
+      - ${CS16_ASSETS_PATH:?Set CS16_ASSETS_PATH to your legal assets path}:/assets:ro
