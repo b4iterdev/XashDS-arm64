@@ -16,6 +16,7 @@ This project runs a **native ARM64** Xash3D FWGS dedicated server for CS1.6.
 ## Why this setup
 
 - Uses official XashDS ARM64 artifact (`xashds-linux-arm64.tar.gz`)
+- Tries `continuous` release first and falls back to `continuous-gha-arm` for resiliency
 - Keeps legal game assets outside the image and mounts them read-only
 - Dedicated mode boot (`-dedicated -game cstrike`) with configurable map/players/port
 

@@ -12,6 +12,10 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      XASH_RELEASE_TAG: continuous
+      XASHDS_TARBALL: xashds-linux-arm64.tar.gz
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +34,11 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/arm64
+          build-args: |
+            XASH_RELEASE_TAG=${{ env.XASH_RELEASE_TAG }}
+            XASHDS_TARBALL=${{ env.XASHDS_TARBALL }}
           push: false
           provenance: false
           sbom: false
           tags: cs16-xashds:arm64
+          outputs: type=docker
