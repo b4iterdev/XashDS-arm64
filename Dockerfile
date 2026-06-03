@@ -34,11 +34,10 @@ RUN set -eux; \
     tar -xzf /tmp/xashds.tar.gz -C /opt/cs16; \
     rm /tmp/xashds.tar.gz
 
-# Copy native libs built in the first stage
-# XashDS expects them in valve/dlls and cstrike/dlls
-RUN mkdir -p /opt/cs16/valve/dlls /opt/cs16/cstrike/dlls
-COPY --from=builder /build/build/valve/dlls/hl.so /opt/cs16/valve/dlls/hl.so
-COPY --from=builder /build/build/cstrike/dlls/cs.so /opt/cs16/cstrike/dlls/cs.so
+# Put native libs in a dedicated folder so they are not hidden by mounts
+RUN mkdir -p /opt/cs16/native_dlls
+COPY --from=builder /build/build/valve/dlls/hl.so /opt/cs16/native_dlls/hl.so
+COPY --from=builder /build/build/cstrike/dlls/cs.so /opt/cs16/native_dlls/cs.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -47,3 +46,4 @@ EXPOSE 27015/udp
 EXPOSE 27015/tcp
 
 ENTRYPOINT ["/entrypoint.sh"]
+

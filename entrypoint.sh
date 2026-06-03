@@ -2,35 +2,32 @@
 set -euo pipefail
 
 ASSETS_DIR="${ASSETS_DIR:-/assets}"
-SERVER_DIR="/opt/cs16"
+SERVER_DIR="${SERVER_DIR:-/opt/cs16}"
 
+# Ensure legal assets are mounted
 if [ ! -d "${ASSETS_DIR}/valve" ] || [ ! -d "${ASSETS_DIR}/cstrike" ]; then
   echo "Missing assets. Mount your legal game files to ${ASSETS_DIR} with valve/ and cstrike/."
-  echo "Example: -v /path/to/legal-cs16:/assets:ro"
   exit 1
 fi
 
-if [ ! -e "${SERVER_DIR}/valve" ]; then
-  ln -s "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"
+# Link assets (only if not already there, avoiding bind mount issues)
+if [ ! -e "${SERVER_DIR}/valve" ]; then ln -s "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"; fi
+if [ ! -e "${SERVER_DIR}/cstrike" ]; then ln -s "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"; fi
+
+# Copy native libs to cstrike/dlls if not already provided by mount
+mkdir -p "${SERVER_DIR}/cstrike/dlls"
+if [ ! -f "${SERVER_DIR}/cstrike/dlls/cs.so" ]; then
+  echo "Copying native ARM64 CS library..."
+  cp "${SERVER_DIR}/native_dlls/cs.so" "${SERVER_DIR}/cstrike/dlls/cs.so"
 fi
 
-if [ ! -e "${SERVER_DIR}/cstrike" ]; then
-  ln -s "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"
+if [ ! -f "${SERVER_DIR}/valve/dlls/hl.so" ]; then
+  echo "Copying native ARM64 HL library..."
+  mkdir -p "${SERVER_DIR}/valve/dlls"
+  cp "${SERVER_DIR}/native_dlls/hl.so" "${SERVER_DIR}/valve/dlls/hl.so"
 fi
 
-if [ ! -f "${SERVER_DIR}/cstrike/server.cfg" ] && [ -f "${SERVER_DIR}/server.cfg" ]; then
-  cp "${SERVER_DIR}/server.cfg" "${SERVER_DIR}/cstrike/server.cfg"
-fi
-
-if [ -f "${SERVER_DIR}/cstrike/dlls/cs_arm64.so" ]; then
-  echo "Using ARM64 game library: cstrike/dlls/cs_arm64.so"
-elif [ -f "${SERVER_DIR}/cstrike/dlls/cs.so" ]; then
-  echo "Using game library: cstrike/dlls/cs.so"
-else
-  echo "Missing game library in cstrike/dlls/. Expected cs_arm64.so or cs.so"
-  exit 1
-fi
-
+# Configure server
 MAP="${MAP:-de_dust2}"
 MAXPLAYERS="${MAXPLAYERS:-16}"
 PORT="${PORT:-27015}"
