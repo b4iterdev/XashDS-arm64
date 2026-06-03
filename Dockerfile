@@ -1,4 +1,15 @@
-FROM ubuntu:24.04
+# Build stage
+FROM --platform=linux/arm64 ubuntu:24.04 AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git cmake g++ make \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
+RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build -S . \
+    && cmake --build build
+
+# Final stage
+FROM --platform=linux/arm64 ubuntu:24.04
 
 ARG XASH_RELEASE_TAG=continuous
 ARG XASHDS_TARBALL=xashds-linux-arm64.tar.gz
@@ -22,6 +33,12 @@ RUN set -eux; \
     test "${found}" = "1"; \
     tar -xzf /tmp/xashds.tar.gz -C /opt/cs16; \
     rm /tmp/xashds.tar.gz
+
+# Copy native libs built in the first stage
+# XashDS expects them in valve/dlls and cstrike/dlls
+RUN mkdir -p /opt/cs16/valve/dlls /opt/cs16/cstrike/dlls
+COPY --from=builder /build/build/valve/dlls/hl.so /opt/cs16/valve/dlls/hl.so
+COPY --from=builder /build/build/cstrike/dlls/cs.so /opt/cs16/cstrike/dlls/cs.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
