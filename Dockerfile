@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
 RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build -S . \
-    && cmake --build build
+    && cmake --build build \
+    && find /build/build -name "*.so"
 
 # Final stage
 FROM --platform=linux/arm64 ubuntu:24.04
