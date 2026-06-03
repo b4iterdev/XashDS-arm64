@@ -104,3 +104,15 @@ To use it:
 3. Open the **Actions** tab and watch the `Build ARM64 XashDS image` workflow.
 
 This CI job validates the Docker build; it does not run the game server because legal `valve/` and `cstrike/` assets are not part of the repository.
+
+### GHCR publishing
+
+- On `main` pushes, CI publishes: `ghcr.io/b4iterdev/xashds-arm64:main`
+- On git tag pushes, CI publishes a matching tag image (for example, `v1.0.0`).
+- Pull requests run build validation only and do not publish.
+
+Pull example:
+
+```bash
+docker pull ghcr.io/b4iterdev/xashds-arm64:main
+```
