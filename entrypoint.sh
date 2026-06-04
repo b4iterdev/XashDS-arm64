@@ -11,20 +11,51 @@ if [ ! -d "${ASSETS_DIR}/valve" ] || [ ! -d "${ASSETS_DIR}/cstrike" ]; then
 fi
 
 # Link assets (only if not already there, avoiding bind mount issues)
-if [ ! -e "${SERVER_DIR}/valve" ]; then ln -s "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"; fi
-if [ ! -e "${SERVER_DIR}/cstrike" ]; then ln -s "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"; fi
+link_shadow_dir() {
+  local src="$1"
+  local dst="$2"
+  mkdir -p "$dst"
+  for item in "$src"/*; do
+    [ -e "$item" ] || continue
+    local base
+    base=$(basename "$item")
+    if [ "$base" = "dlls" ]; then
+      mkdir -p "$dst/dlls"
+      for subitem in "$item"/*; do
+        [ -e "$subitem" ] || continue
+        ln -sf "$subitem" "$dst/dlls/$(basename "$subitem")"
+      done
+    else
+      ln -sf "$item" "$dst/$base"
+    fi
+  done
+}
 
-# Copy native libs to cstrike/dlls if not already provided by mount
-mkdir -p "${SERVER_DIR}/cstrike/dlls"
-if [ ! -f "${SERVER_DIR}/cstrike/dlls/cs.so" ]; then
-  echo "Copying native ARM64 CS library..."
+echo "Shadowing read-only assets into writable container layout..."
+link_shadow_dir "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"
+link_shadow_dir "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"
+
+# Handle valve library
+if [ -f "${ASSETS_DIR}/valve/dlls/hl_arm64.so" ]; then
+  echo "Found mounted ARM64 HL library (hl_arm64.so)."
+else
+  echo "Copying built-in native ARM64 HL library..."
+  rm -f "${SERVER_DIR}/valve/dlls/hl.so" 2>/dev/null || true
+  cp "${SERVER_DIR}/native_dlls/hl.so" "${SERVER_DIR}/valve/dlls/hl.so"
+fi
+
+# Handle cstrike library
+if [ -f "${ASSETS_DIR}/cstrike/dlls/cs_arm64.so" ]; then
+  echo "Found mounted ARM64 CS library (cs_arm64.so)."
+else
+  echo "Copying built-in native ARM64 CS library..."
+  rm -f "${SERVER_DIR}/cstrike/dlls/cs.so" 2>/dev/null || true
   cp "${SERVER_DIR}/native_dlls/cs.so" "${SERVER_DIR}/cstrike/dlls/cs.so"
 fi
 
-if [ ! -f "${SERVER_DIR}/valve/dlls/hl.so" ]; then
-  echo "Copying native ARM64 HL library..."
-  mkdir -p "${SERVER_DIR}/valve/dlls"
-  cp "${SERVER_DIR}/native_dlls/hl.so" "${SERVER_DIR}/valve/dlls/hl.so"
+# Copy server.cfg if not mounted
+if [ ! -f "${SERVER_DIR}/cstrike/server.cfg" ] && [ -f "${SERVER_DIR}/server.cfg" ]; then
+  cp "${SERVER_DIR}/server.cfg" "${SERVER_DIR}/cstrike/server.cfg"
 fi
 
 # Configure server
