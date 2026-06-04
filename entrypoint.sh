@@ -1,43 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ASSETS_DIR="${ASSETS_DIR:-/assets}"
 SERVER_DIR="${SERVER_DIR:-/opt/cs16}"
 
-# Ensure legal assets are mounted
-if [ ! -d "${ASSETS_DIR}/valve" ] || [ ! -d "${ASSETS_DIR}/cstrike" ]; then
-  echo "Missing assets. Mount your legal game files to ${ASSETS_DIR} with valve/ and cstrike/."
-  exit 1
+# Fallback for old configurations passing ASSETS_DIR
+if [ -n "${ASSETS_DIR:-}" ] && [ "$ASSETS_DIR" != "$SERVER_DIR" ]; then
+  echo "WARNING: Using ASSETS_DIR is deprecated. Mount your files directly to ${SERVER_DIR} without :ro."
+  # Ensure legal assets are mounted
+  if [ ! -d "${ASSETS_DIR}/valve" ] || [ ! -d "${ASSETS_DIR}/cstrike" ]; then
+    echo "Missing assets. Mount your legal game files to ${ASSETS_DIR} with valve/ and cstrike/."
+    exit 1
+  fi
+  
+  # Link assets (only if not already there, avoiding bind mount issues)
+  link_shadow_dir() {
+    local src="$1"
+    local dst="$2"
+    mkdir -p "$dst"
+    for item in "$src"/*; do
+      [ -e "$item" ] || continue
+      local base
+      base=$(basename "$item")
+      if [ "$base" = "dlls" ] || [ "$base" = "addons" ]; then
+        mkdir -p "$dst/$base"
+        for subitem in "$item"/*; do
+          [ -e "$subitem" ] || continue
+          ln -sf "$subitem" "$dst/$base/$(basename "$subitem")"
+        done
+      else
+        ln -sf "$item" "$dst/$base"
+      fi
+    done
+  }
+
+  echo "Shadowing read-only assets into writable container layout..."
+  link_shadow_dir "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"
+  link_shadow_dir "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"
+else
+  # Ensure legal assets are mounted directly to SERVER_DIR
+  if [ ! -d "${SERVER_DIR}/valve" ] || [ ! -d "${SERVER_DIR}/cstrike" ]; then
+    echo "Missing assets. Mount your legal game files directly to ${SERVER_DIR} with valve/ and cstrike/."
+    exit 1
+  fi
 fi
 
-# Link assets (only if not already there, avoiding bind mount issues)
-link_shadow_dir() {
-  local src="$1"
-  local dst="$2"
-  mkdir -p "$dst"
-  for item in "$src"/*; do
-    [ -e "$item" ] || continue
-    local base
-    base=$(basename "$item")
-    if [ "$base" = "dlls" ] || [ "$base" = "addons" ]; then
-      mkdir -p "$dst/$base"
-      for subitem in "$item"/*; do
-        [ -e "$subitem" ] || continue
-        ln -sf "$subitem" "$dst/$base/$(basename "$subitem")"
-      done
-    else
-      ln -sf "$item" "$dst/$base"
-    fi
-  done
-}
-
-echo "Shadowing read-only assets into writable container layout..."
-link_shadow_dir "${ASSETS_DIR}/valve" "${SERVER_DIR}/valve"
-link_shadow_dir "${ASSETS_DIR}/cstrike" "${SERVER_DIR}/cstrike"
-
 # Handle valve library
-if [ -f "${ASSETS_DIR}/valve/dlls/hl_arm64.so" ]; then
-  echo "Found mounted ARM64 HL library (hl_arm64.so)."
+if [ -f "${SERVER_DIR}/valve/dlls/hl_arm64.so" ]; then
+  echo "Found ARM64 HL library (hl_arm64.so)."
 else
   echo "Copying built-in native ARM64 HL library..."
   mkdir -p "${SERVER_DIR}/valve/dlls"
@@ -46,8 +55,8 @@ else
 fi
 
 # Handle cstrike library
-if [ -f "${ASSETS_DIR}/cstrike/dlls/cs_arm64.so" ]; then
-  echo "Found mounted ARM64 CS library (cs_arm64.so)."
+if [ -f "${SERVER_DIR}/cstrike/dlls/cs_arm64.so" ]; then
+  echo "Found ARM64 CS library (cs_arm64.so)."
 else
   echo "Copying built-in native ARM64 CS library..."
   mkdir -p "${SERVER_DIR}/cstrike/dlls"
