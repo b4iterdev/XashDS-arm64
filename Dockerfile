@@ -42,8 +42,8 @@ RUN set -eux; \
 
 # Put native libs in a dedicated folder
 RUN mkdir -p /opt/cs16/native_dlls
-COPY --from=builder /build/build_hl/dlls/hl_arm64.so /opt/cs16/native_dlls/hl.so
-COPY --from=builder /build/build_cs/dlls/cs_arm64.so /opt/cs16/native_dlls/cs.so
+COPY --from=builder /build/build_hl/dlls/hl_arm64.so /opt/cs16/native_dlls/hl_arm64.so
+COPY --from=builder /build/build_cs/dlls/cs_arm64.so /opt/cs16/native_dlls/cs_arm64.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -41,8 +41,8 @@ if [ -f "${ASSETS_DIR}/valve/dlls/hl_arm64.so" ]; then
 else
   echo "Copying built-in native ARM64 HL library..."
   mkdir -p "${SERVER_DIR}/valve/dlls"
-  rm -f "${SERVER_DIR}/valve/dlls/hl.so" 2>/dev/null || true
-  cp "${SERVER_DIR}/native_dlls/hl.so" "${SERVER_DIR}/valve/dlls/hl.so"
+  rm -f "${SERVER_DIR}/valve/dlls/hl_arm64.so" 2>/dev/null || true
+  cp "${SERVER_DIR}/native_dlls/hl_arm64.so" "${SERVER_DIR}/valve/dlls/hl_arm64.so"
 fi
 
 # Handle cstrike library
@@ -51,8 +51,8 @@ if [ -f "${ASSETS_DIR}/cstrike/dlls/cs_arm64.so" ]; then
 else
   echo "Copying built-in native ARM64 CS library..."
   mkdir -p "${SERVER_DIR}/cstrike/dlls"
-  rm -f "${SERVER_DIR}/cstrike/dlls/cs.so" 2>/dev/null || true
-  cp "${SERVER_DIR}/native_dlls/cs.so" "${SERVER_DIR}/cstrike/dlls/cs.so"
+  rm -f "${SERVER_DIR}/cstrike/dlls/cs_arm64.so" 2>/dev/null || true
+  cp "${SERVER_DIR}/native_dlls/cs_arm64.so" "${SERVER_DIR}/cstrike/dlls/cs_arm64.so"
 fi
 
 # Copy server.cfg if not mounted
