@@ -4,19 +4,10 @@ This project runs a **native ARM64** Xash3D FWGS dedicated server for CS1.6.
 
 ## Requirements
 
-- Docker with Buildx support
 - ARM64 host (or ARM64 VM)
 - Legal Counter-Strike/Half-Life assets containing:
   - `valve/`
   - `cstrike/`
-
-## Why this setup
-
-- Uses official XashDS ARM64 artifact (`xashds-linux-arm64.tar.gz`)
-- **Native build**: Automatically compiles ARM64 `hl_arm64.so` from `hlsdk-portable`, ARM64 `cs_arm64.so` from `rehlds/ReGameDLL_CS`, and ARM64 `metamod_arm64.so` from `FWGS/metamod-fwgs` during the Docker build stage.
-- Keeps legal game assets outside the image and mounts them read-only.
-- Dedicated mode boot (`-dedicated -game cstrike`) with configurable map/players/port.
-- Metamod-FWGS is enabled by default and can be disabled with `ENABLE_METAMOD=0`.
 
 ## Quick start (Docker Compose)
 
