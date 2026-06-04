@@ -19,11 +19,11 @@ link_shadow_dir() {
     [ -e "$item" ] || continue
     local base
     base=$(basename "$item")
-    if [ "$base" = "dlls" ]; then
-      mkdir -p "$dst/dlls"
+    if [ "$base" = "dlls" ] || [ "$base" = "addons" ]; then
+      mkdir -p "$dst/$base"
       for subitem in "$item"/*; do
         [ -e "$subitem" ] || continue
-        ln -sf "$subitem" "$dst/dlls/$(basename "$subitem")"
+        ln -sf "$subitem" "$dst/$base/$(basename "$subitem")"
       done
     else
       ln -sf "$item" "$dst/$base"
