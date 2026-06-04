@@ -10,6 +10,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build_hl -S . \
 
 WORKDIR /build/ReGameDLL_CS
 RUN git clone --recursive https://github.com/rehlds/ReGameDLL_CS.git .
+RUN python3 -c 'from pathlib import Path; p = Path("regamedll/engine/osconfig.h"); s = p.read_text(); old = "\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))"; new = "\t#if defined(__i386__) || defined(__x86_64__)\n\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))\n\t#else\n\t#define FORCE_STACK_ALIGN\n\t#endif"; assert s.count(old) == 1; p.write_text(s.replace(old, new))'
 RUN cmake -S . -B build_cs -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DXASH_COMPAT=ON \
