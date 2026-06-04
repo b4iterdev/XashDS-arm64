@@ -13,7 +13,7 @@ This project runs a **native ARM64** Xash3D FWGS dedicated server for CS1.6.
 ## Why this setup
 
 - Uses official XashDS ARM64 artifact (`xashds-linux-arm64.tar.gz`)
-- **Native build**: Automatically compiles native ARM64 game libraries (`hl.so`, `cs.so`) using `hlsdk-portable` during the Docker build stage.
+- **Native build**: Automatically compiles ARM64 `hl_arm64.so` from `hlsdk-portable` and ARM64 `cs_arm64.so` from Velaron's `cs16-client`/ReGameDLL_CS during the Docker build stage.
 - Keeps legal game assets outside the image and mounts them read-only.
 - Dedicated mode boot (`-dedicated -game cstrike`) with configurable map/players/port.
 
