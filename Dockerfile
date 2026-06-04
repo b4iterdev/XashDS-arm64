@@ -13,8 +13,6 @@ RUN git clone --recursive https://github.com/rehlds/ReGameDLL_CS.git .
 RUN cmake -S . -B build_cs -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DXASH_COMPAT=ON \
-      -DCMAKE_C_COMPILER=clang \
-      -DCMAKE_CXX_COMPILER=clang++ \
     && cmake --build build_cs
 
 WORKDIR /build/metamod-fwgs
