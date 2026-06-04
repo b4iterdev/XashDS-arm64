@@ -37,7 +37,7 @@ RUN set -eux; \
       fi; \
     done; \
     test "${found}" = "1"; \
-    tar -xzf /tmp/xashds.tar.gz -C /opt/cs16; \
+    tar -xzf /tmp/xashds.tar.gz -C /opt/cs16 --strip-components=1; \
     rm /tmp/xashds.tar.gz
 
 # Put native libs in a dedicated folder
