@@ -13,9 +13,10 @@ This project runs a **native ARM64** Xash3D FWGS dedicated server for CS1.6.
 ## Why this setup
 
 - Uses official XashDS ARM64 artifact (`xashds-linux-arm64.tar.gz`)
-- **Native build**: Automatically compiles ARM64 `hl_arm64.so` from `hlsdk-portable` and ARM64 `cs_arm64.so` from Velaron's `cs16-client`/ReGameDLL_CS during the Docker build stage.
+- **Native build**: Automatically compiles ARM64 `hl_arm64.so` from `hlsdk-portable`, ARM64 `cs_arm64.so` from `rehlds/ReGameDLL_CS`, and ARM64 `metamod_arm64.so` from `FWGS/metamod-fwgs` during the Docker build stage.
 - Keeps legal game assets outside the image and mounts them read-only.
 - Dedicated mode boot (`-dedicated -game cstrike`) with configurable map/players/port.
+- Metamod-FWGS is enabled by default and can be disabled with `ENABLE_METAMOD=0`.
 
 ## Quick start (Docker Compose)
 
@@ -57,9 +58,32 @@ docker run --rm -it \
   --platform linux/arm64 \
   -p 27015:27015/udp -p 27015:27015/tcp \
   -e MAP=de_dust2 -e MAXPLAYERS=16 -e PORT=27015 \
+  -e ENABLE_METAMOD=1 \
   -v /absolute/path/to/your/legal/cs16:/assets:ro \
   cs16-xashds:arm64
 ```
+
+## Metamod-FWGS
+
+Metamod-FWGS is installed into the container's writable shadow copy of your mounted `cstrike` folder:
+
+```text
+cstrike/addons/metamod/metamod_arm64.so
+cstrike/addons/metamod/config.ini
+cstrike/addons/metamod/plugins.ini
+```
+
+The generated `config.ini` chain-loads:
+
+```text
+dlls/cs_arm64.so
+```
+
+Set `ENABLE_METAMOD=0` to bypass Metamod and load ReGameDLL directly.
+
+## AMX Mod X
+
+AMX Mod X is intentionally not included. Current upstream AMX Mod X is still tied to 32-bit x86 Linux (`-m32`, `_i386` outputs, x86 NASM/JIT pieces), so it will not load into this native ARM64 Xash3D/Metamod process without a real ARM64 port.
 
 ## GitHub Actions build (no local Docker needed)
 

@@ -55,6 +55,47 @@ else
   cp "${SERVER_DIR}/native_dlls/cs_arm64.so" "${SERVER_DIR}/cstrike/dlls/cs_arm64.so"
 fi
 
+ENABLE_METAMOD="${ENABLE_METAMOD:-1}"
+if [ "${ENABLE_METAMOD}" = "1" ]; then
+  echo "Installing native ARM64 Metamod-FWGS..."
+  mkdir -p "${SERVER_DIR}/cstrike/addons/metamod"
+  cp "${SERVER_DIR}/native_dlls/metamod_arm64.so" "${SERVER_DIR}/cstrike/addons/metamod/metamod_arm64.so"
+
+  if [ ! -f "${SERVER_DIR}/cstrike/addons/metamod/plugins.ini" ]; then
+    : > "${SERVER_DIR}/cstrike/addons/metamod/plugins.ini"
+  fi
+
+  cat > "${SERVER_DIR}/cstrike/addons/metamod/config.ini" <<'EOF'
+debuglevel 0
+gamedll dlls/cs_arm64.so
+exec_cfg addons/metamod/exec.cfg
+clientmeta yes
+dynalign_list yes
+EOF
+
+  if [ -L "${SERVER_DIR}/cstrike/gameinfo.txt" ]; then
+    cp "$(readlink "${SERVER_DIR}/cstrike/gameinfo.txt")" "${SERVER_DIR}/cstrike/gameinfo.txt.tmp" 2>/dev/null || true
+    rm -f "${SERVER_DIR}/cstrike/gameinfo.txt"
+    if [ -f "${SERVER_DIR}/cstrike/gameinfo.txt.tmp" ]; then
+      mv "${SERVER_DIR}/cstrike/gameinfo.txt.tmp" "${SERVER_DIR}/cstrike/gameinfo.txt"
+    fi
+  fi
+
+  if [ ! -f "${SERVER_DIR}/cstrike/gameinfo.txt" ]; then
+    cat > "${SERVER_DIR}/cstrike/gameinfo.txt" <<'EOF'
+game "Counter-Strike"
+gamedir "cstrike"
+fallback_dir "valve"
+gamedll "dlls/cs.dll"
+gamedll_linux "addons/metamod/metamod.so"
+EOF
+  elif grep -q '^gamedll_linux' "${SERVER_DIR}/cstrike/gameinfo.txt"; then
+    sed -i 's#^gamedll_linux.*#gamedll_linux "addons/metamod/metamod.so"#' "${SERVER_DIR}/cstrike/gameinfo.txt"
+  else
+    printf '\ngamedll_linux "addons/metamod/metamod.so"\n' >> "${SERVER_DIR}/cstrike/gameinfo.txt"
+  fi
+fi
+
 # Copy server.cfg if not mounted
 if [ ! -f "${SERVER_DIR}/cstrike/server.cfg" ] && [ -f "${SERVER_DIR}/server.cfg" ]; then
   cp "${SERVER_DIR}/server.cfg" "${SERVER_DIR}/cstrike/server.cfg"

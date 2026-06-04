@@ -1,6 +1,6 @@
 FROM ubuntu:24.04 AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates git cmake g++ make python3 libfontconfig-dev \
+    ca-certificates git cmake g++ make ninja-build clang python3 libfontconfig-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build/hlsdk-portable
 RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
@@ -8,10 +8,20 @@ RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
 RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build_hl -S . \
     && cmake --build build_hl
 
-WORKDIR /build/cs16-client
-RUN git clone --recursive https://github.com/Velaron/cs16-client.git .
-RUN cmake -DCMAKE_BUILD_TYPE=Release -B build_cs -S . \
-    && cmake --build build_cs --target regamedll
+WORKDIR /build/ReGameDLL_CS
+RUN git clone --recursive https://github.com/rehlds/ReGameDLL_CS.git .
+RUN cmake -S . -B build_cs -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DXASH_COMPAT=ON \
+      -DCMAKE_C_COMPILER=clang \
+      -DCMAKE_CXX_COMPILER=clang++ \
+    && cmake --build build_cs
+
+WORKDIR /build/metamod-fwgs
+RUN git clone --recursive https://github.com/FWGS/metamod-fwgs.git .
+RUN cmake -S . -B build_metamod -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build_metamod \
+    && cmake --install build_metamod --prefix /build/metamod-install
 
 FROM ubuntu:24.04
 
@@ -40,7 +50,8 @@ RUN set -eux; \
 
 RUN mkdir -p /opt/cs16/native_dlls
 COPY --from=builder /build/hlsdk-portable/build_hl/dlls/hl_arm64.so /opt/cs16/native_dlls/hl_arm64.so
-COPY --from=builder /build/cs16-client/build_cs/3rdparty/ReGameDLL_CS/regamedll/cs_arm64.so /opt/cs16/native_dlls/cs_arm64.so
+COPY --from=builder /build/ReGameDLL_CS/build_cs/regamedll/cs_arm64.so /opt/cs16/native_dlls/cs_arm64.so
+COPY --from=builder /build/metamod-install/metamod_arm64.so /opt/cs16/native_dlls/metamod_arm64.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
