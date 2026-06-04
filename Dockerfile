@@ -22,6 +22,24 @@ RUN cmake -S . -B build_cs -G Ninja \
 
 WORKDIR /build/metamod-fwgs
 RUN git clone --recursive https://github.com/FWGS/metamod-fwgs.git .
+RUN python3 - <<'EOF'
+from pathlib import Path
+p = Path("metamod/include/engine/osconfig.h")
+s = p.read_text()
+
+old_sse = "#include <smmintrin.h>\n#include <xmmintrin.h>"
+new_sse = "#if defined(__i386__) || defined(__x86_64__)\n#include <smmintrin.h>\n#include <xmmintrin.h>\n#endif"
+assert s.count(old_sse) == 1, "smmintrin block not found or found multiple times"
+s = s.replace(old_sse, new_sse)
+
+old_fsa = "\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))"
+new_fsa = "\t#if defined(__i386__) || defined(__x86_64__)\n\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))\n\t#else\n\t#define FORCE_STACK_ALIGN\n\t#endif"
+assert s.count(old_fsa) == 1, "FORCE_STACK_ALIGN not found or found multiple times"
+s = s.replace(old_fsa, new_fsa)
+
+p.write_text(s)
+print("patched osconfig.h for ARM64")
+EOF
 RUN cmake -S . -B build_metamod -G Ninja -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build_metamod \
     && cmake --install build_metamod --prefix /build/metamod-install
