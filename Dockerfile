@@ -5,9 +5,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
-RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build -S . \
-    && cmake --build build \
-    && find /build/build -name "*.so"
+
+# Build Half-Life (hl_arm64.so)
+RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build_hl -S . \
+    && cmake --build build_hl
+
+# Build Counter-Strike (cs_arm64.so)
+RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -DSERVER_LIBRARY_NAME=cs -B build_cs -S . \
+    && cmake --build build_cs
 
 # Final stage
 FROM --platform=linux/arm64 ubuntu:24.04
@@ -35,10 +40,10 @@ RUN set -eux; \
     tar -xzf /tmp/xashds.tar.gz -C /opt/cs16; \
     rm /tmp/xashds.tar.gz
 
-# Put native libs in a dedicated folder so they are not hidden by mounts
+# Put native libs in a dedicated folder
 RUN mkdir -p /opt/cs16/native_dlls
-COPY --from=builder /build/build/valve/dlls/hl.so /opt/cs16/native_dlls/hl.so
-COPY --from=builder /build/build/cstrike/dlls/cs.so /opt/cs16/native_dlls/cs.so
+COPY --from=builder /build/build_hl/dlls/hl_arm64.so /opt/cs16/native_dlls/hl.so
+COPY --from=builder /build/build_cs/dlls/cs_arm64.so /opt/cs16/native_dlls/cs.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
