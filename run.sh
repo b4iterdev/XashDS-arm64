@@ -27,6 +27,6 @@ docker run --rm -it \
   -e MAP="${MAP:-de_dust2}" \
   -e MAXPLAYERS="${MAXPLAYERS:-16}" \
   -e PORT="${PORT:-27015}" \
-  -v "${ASSETS_PATH}":/assets:ro \
+  -v "${ASSETS_PATH}":/opt/cs16 \
   cs16-xashds:arm64 \
   "$@"

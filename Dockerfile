@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl tar libstdc++6 libgcc-s1 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/cs16
+WORKDIR /opt/xashds-engine
 
 RUN set -eux; \
     found=0; \
@@ -66,13 +66,13 @@ RUN set -eux; \
       fi; \
     done; \
     test "${found}" = "1"; \
-    tar -xzf /tmp/xashds.tar.gz -C /opt/cs16 --strip-components=1; \
+    tar -xzf /tmp/xashds.tar.gz -C /opt/xashds-engine --strip-components=1; \
     rm /tmp/xashds.tar.gz
 
-RUN mkdir -p /opt/cs16/native_dlls
-COPY --from=builder /build/hlsdk-portable/build_hl/dlls/hl_arm64.so /opt/cs16/native_dlls/hl_arm64.so
-COPY --from=builder /build/ReGameDLL_CS/build_cs/regamedll/cs_arm64.so /opt/cs16/native_dlls/cs_arm64.so
-COPY --from=builder /build/metamod-install/metamod_arm64.so /opt/cs16/native_dlls/metamod_arm64.so
+RUN mkdir -p /opt/xashds-native
+COPY --from=builder /build/hlsdk-portable/build_hl/dlls/hl_arm64.so /opt/xashds-native/hl_arm64.so
+COPY --from=builder /build/ReGameDLL_CS/build_cs/regamedll/cs_arm64.so /opt/xashds-native/cs_arm64.so
+COPY --from=builder /build/metamod-install/metamod_arm64.so /opt/xashds-native/metamod_arm64.so
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

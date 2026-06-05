@@ -2,10 +2,16 @@
 set -euo pipefail
 
 SERVER_DIR="${SERVER_DIR:-/opt/cs16}"
+ENGINE_DIR="${ENGINE_DIR:-/opt/xashds-engine}"
+NATIVE_DLLS_DIR="${NATIVE_DLLS_DIR:-/opt/xashds-native}"
+
+mkdir -p "${SERVER_DIR}"
+cp -an "${ENGINE_DIR}/." "${SERVER_DIR}/"
+chmod +x "${SERVER_DIR}/xash"
 
 # Fallback for old configurations passing ASSETS_DIR
 if [ -n "${ASSETS_DIR:-}" ] && [ "$ASSETS_DIR" != "$SERVER_DIR" ]; then
-  echo "WARNING: Using ASSETS_DIR is deprecated. Mount your files directly to ${SERVER_DIR} without :ro."
+  echo "WARNING: Using ASSETS_DIR is deprecated. Mount your files directly to ${SERVER_DIR}."
   # Ensure legal assets are mounted
   if [ ! -d "${ASSETS_DIR}/valve" ] || [ ! -d "${ASSETS_DIR}/cstrike" ]; then
     echo "Missing assets. Mount your legal game files to ${ASSETS_DIR} with valve/ and cstrike/."
@@ -51,7 +57,7 @@ else
   echo "Copying built-in native ARM64 HL library..."
   mkdir -p "${SERVER_DIR}/valve/dlls"
   rm -f "${SERVER_DIR}/valve/dlls/hl_arm64.so" 2>/dev/null || true
-  cp "${SERVER_DIR}/native_dlls/hl_arm64.so" "${SERVER_DIR}/valve/dlls/hl_arm64.so"
+  cp "${NATIVE_DLLS_DIR}/hl_arm64.so" "${SERVER_DIR}/valve/dlls/hl_arm64.so"
 fi
 
 # Handle cstrike library
@@ -61,14 +67,14 @@ else
   echo "Copying built-in native ARM64 CS library..."
   mkdir -p "${SERVER_DIR}/cstrike/dlls"
   rm -f "${SERVER_DIR}/cstrike/dlls/cs_arm64.so" 2>/dev/null || true
-  cp "${SERVER_DIR}/native_dlls/cs_arm64.so" "${SERVER_DIR}/cstrike/dlls/cs_arm64.so"
+  cp "${NATIVE_DLLS_DIR}/cs_arm64.so" "${SERVER_DIR}/cstrike/dlls/cs_arm64.so"
 fi
 
 ENABLE_METAMOD="${ENABLE_METAMOD:-1}"
 if [ "${ENABLE_METAMOD}" = "1" ]; then
   echo "Installing native ARM64 Metamod-FWGS..."
   mkdir -p "${SERVER_DIR}/cstrike/addons/metamod"
-  cp "${SERVER_DIR}/native_dlls/metamod_arm64.so" "${SERVER_DIR}/cstrike/addons/metamod/metamod_arm64.so"
+  cp "${NATIVE_DLLS_DIR}/metamod_arm64.so" "${SERVER_DIR}/cstrike/addons/metamod/metamod_arm64.so"
 
   if [ ! -f "${SERVER_DIR}/cstrike/addons/metamod/plugins.ini" ]; then
     : > "${SERVER_DIR}/cstrike/addons/metamod/plugins.ini"
