@@ -4,13 +4,21 @@ on:
   push:
     branches:
       - '**'
+    tags:
+      - '**'
   pull_request:
+  release:
+    types:
+      - created
+      - published
+      - released
+      - prereleased
 
 jobs:
   docker-build-arm64:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     env:
@@ -29,6 +37,7 @@ jobs:
           tags: |
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
+            type=raw,value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
             type=sha
 
       - name: Set up QEMU
@@ -62,8 +71,8 @@ jobs:
           sbom: false
           outputs: type=docker
 
-      - name: Build and push ARM64 image (main/tags)
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+      - name: Build and push ARM64 image (main/tags/releases)
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -77,3 +86,63 @@ jobs:
           sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build local ARM64 image for native library extraction
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          build-args: |
+            XASH_RELEASE_TAG=${{ env.XASH_RELEASE_TAG }}
+            XASHDS_TARBALL=${{ env.XASHDS_TARBALL }}
+          load: true
+          tags: xashds-arm64-release:${{ github.sha }}
+          provenance: false
+          sbom: false
+
+      - name: Package ARM64 native libraries
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+          fi
+
+          container_id="$(docker create xashds-arm64-release:${{ github.sha }})"
+          trap 'docker rm -f "${container_id}" >/dev/null 2>&1 || true' EXIT
+
+          mkdir -p release-root/valve/dlls
+          mkdir -p release-root/cstrike/dlls
+          mkdir -p release-root/cstrike/addons/metamod
+
+          docker cp "${container_id}:/opt/xashds-native/hl_arm64.so" release-root/valve/dlls/hl_arm64.so
+          docker cp "${container_id}:/opt/xashds-native/cs_arm64.so" release-root/cstrike/dlls/cs_arm64.so
+          docker cp "${container_id}:/opt/xashds-native/metamod_arm64.so" release-root/cstrike/addons/metamod/metamod_arm64.so
+
+          printf '%s\n' \
+            'debuglevel 0' \
+            'gamedll dlls/cs_arm64.so' \
+            'exec_cfg addons/metamod/exec.cfg' \
+            'clientmeta yes' \
+            'dynalign_list yes' \
+            > release-root/cstrike/addons/metamod/config.ini
+
+          tar -C release-root -czf "xashds-arm64-native-libs-${version}.tar.gz" .
+
+      - name: Upload ARM64 native libraries artifact
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: xashds-arm64-native-libs
+          path: xashds-arm64-native-libs-*.tar.gz
+          if-no-files-found: error
+
+      - name: Upload ARM64 native libraries to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" xashds-arm64-native-libs-*.tar.gz --clobber
