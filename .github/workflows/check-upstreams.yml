@@ -1,0 +1,74 @@
+name: Check upstream updates
+
+on:
+  schedule:
+    # Daily at 06:00 UTC — all three upstreams update frequently
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-upstreams:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch latest upstream refs
+        id: fetch
+        run: |
+          echo "REGAMEDLL_CS_COMMIT=$(git ls-remote https://github.com/Velaron/ReGameDLL_CS.git refs/heads/android | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "METAMOD_FWGS_COMMIT=$(git ls-remote https://github.com/FWGS/metamod-fwgs.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "XASH3D_FWGS_COMMIT=$(git ls-remote https://github.com/FWGS/xash3d-fwgs.git refs/tags/continuous | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Check for changes
+        id: check
+        run: |
+          changed=0
+
+          stored=$(grep "^REGAMEDLL_CS_COMMIT=" .upstream-refs | cut -d= -f2 || echo "")
+          latest="${{ steps.fetch.outputs.REGAMEDLL_CS_COMMIT }}"
+          if [ -n "$stored" ] && [ -n "$latest" ] && [ "$stored" != "$latest" ]; then
+            echo "ReGameDLL_CS: $stored → $latest"
+            changed=1
+          fi
+
+          stored=$(grep "^METAMOD_FWGS_COMMIT=" .upstream-refs | cut -d= -f2 || echo "")
+          latest="${{ steps.fetch.outputs.METAMOD_FWGS_COMMIT }}"
+          if [ -n "$stored" ] && [ -n "$latest" ] && [ "$stored" != "$latest" ]; then
+            echo "metamod-fwgs: $stored → $latest"
+            changed=1
+          fi
+
+          stored=$(grep "^XASH3D_FWGS_COMMIT=" .upstream-refs | cut -d= -f2 || echo "")
+          latest="${{ steps.fetch.outputs.XASH3D_FWGS_COMMIT }}"
+          if [ -n "$stored" ] && [ -n "$latest" ] && [ "$stored" != "$latest" ]; then
+            echo "xash3d-fwgs: $stored → $latest"
+            changed=1
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Update refs and commit
+        if: steps.check.outputs.changed == '1'
+        run: |
+          cat > .upstream-refs <<EOF
+          # Upstream repository references tracked by check-upstreams workflow.
+          # When any of these change, a commit is made to trigger the build.
+          REGAMEDLL_CS_COMMIT=${{ steps.fetch.outputs.REGAMEDLL_CS_COMMIT }}
+          METAMOD_FWGS_COMMIT=${{ steps.fetch.outputs.METAMOD_FWGS_COMMIT }}
+          XASH3D_FWGS_COMMIT=${{ steps.fetch.outputs.XASH3D_FWGS_COMMIT }}
+          EOF
+
+          git config user.name "xashds-updater"
+          git config user.email "actions@github.com"
+
+          git add .upstream-refs
+          git commit -m "chore: update upstream refs
+
+          Velaron/ReGameDLL_CS/android:  ${{ steps.fetch.outputs.REGAMEDLL_CS_COMMIT }}
+          FWGS/metamod-fwgs/master:      ${{ steps.fetch.outputs.METAMOD_FWGS_COMMIT }}
+          FWGS/xash3d-fwgs/continuous:   ${{ steps.fetch.outputs.XASH3D_FWGS_COMMIT }}"
+
+          git push

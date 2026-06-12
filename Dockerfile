@@ -1,6 +1,6 @@
 FROM ubuntu:24.04 AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates git cmake g++ make ninja-build clang python3 libfontconfig-dev \
+    ca-certificates git cmake g++ make ninja-build clang libfontconfig-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build/hlsdk-portable
 RUN git clone --recursive https://github.com/FWGS/hlsdk-portable.git .
@@ -9,11 +9,10 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -D64BIT=ON -B build_hl -S . \
     && cmake --build build_hl
 
 WORKDIR /build/ReGameDLL_CS
-# Use Velaron/ReGameDLL_CS at commit d1af1363 — this fork already contains both ARM64 fixes:
+# Velaron/ReGameDLL_CS android branch contains both ARM64 fixes:
 #   1. FORCE_STACK_ALIGN guarded to x86 only (osconfig.h)
 #   2. DebuggerBreak() uses raise(SIGTRAP) instead of "int3;" (platform.h)
-RUN git clone https://github.com/Velaron/ReGameDLL_CS.git . \
-    && git checkout d1af1363e1aa91553ee5773217070208bf1e941f \
+RUN git clone --branch android https://github.com/Velaron/ReGameDLL_CS.git . \
     && git submodule update --init --recursive
 RUN cmake -S . -B build_cs -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
@@ -22,24 +21,6 @@ RUN cmake -S . -B build_cs -G Ninja \
 
 WORKDIR /build/metamod-fwgs
 RUN git clone --recursive https://github.com/FWGS/metamod-fwgs.git .
-RUN python3 - <<'EOF'
-from pathlib import Path
-p = Path("metamod/include/engine/osconfig.h")
-s = p.read_text()
-
-old_sse = "#include <smmintrin.h>\n#include <xmmintrin.h>"
-new_sse = "#if defined(__i386__) || defined(__x86_64__)\n#include <smmintrin.h>\n#include <xmmintrin.h>\n#endif"
-assert s.count(old_sse) == 1, "smmintrin block not found or found multiple times"
-s = s.replace(old_sse, new_sse)
-
-old_fsa = "\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))"
-new_fsa = "\t#if defined(__i386__) || defined(__x86_64__)\n\t#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))\n\t#else\n\t#define FORCE_STACK_ALIGN\n\t#endif"
-assert s.count(old_fsa) == 1, "FORCE_STACK_ALIGN not found or found multiple times"
-s = s.replace(old_fsa, new_fsa)
-
-p.write_text(s)
-print("patched osconfig.h for ARM64")
-EOF
 RUN cmake -S . -B build_metamod -G Ninja -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build_metamod \
     && cmake --install build_metamod --prefix /build/metamod-install
