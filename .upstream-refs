@@ -2,4 +2,4 @@
 # When any of these change, a commit is made to trigger the build.
 REGAMEDLL_CS_COMMIT=5c0525e9a95f0ef5cae710515afadb6799e5e619
 METAMOD_FWGS_COMMIT=9d4767e42daa2e0da2febf4321bad00681ad4626
-XASH3D_FWGS_COMMIT=190fa1bab89898b383ba199d2a558d84d4ce6b86
+XASH3D_FWGS_COMMIT=c2ac632446d66b37fcfd4bef252d0c30e906b3ab
