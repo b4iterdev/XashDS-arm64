@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +53,8 @@ jobs:
 
       - name: Update refs and commit
         if: steps.check.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cat > .upstream-refs <<EOF
           # Upstream repository references tracked by check-upstreams workflow.
@@ -72,3 +75,4 @@ jobs:
           FWGS/xash3d-fwgs/continuous:   ${{ steps.fetch.outputs.XASH3D_FWGS_COMMIT }}"
 
           git push
+          gh workflow run build-arm64.yml --ref "${GITHUB_REF_NAME}"
