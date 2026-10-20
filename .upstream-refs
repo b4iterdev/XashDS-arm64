@@ -1,5 +1,5 @@
 # Upstream repository references tracked by check-upstreams workflow.
 # When any of these change, a commit is made to trigger the build.
-REGAMEDLL_CS_COMMIT=f38690731e40a0828dec7c6fb8120ad3c831ae55
+REGAMEDLL_CS_COMMIT=52d2ab885aff5974d124382a989e01c22da5f920
 METAMOD_FWGS_COMMIT=6bfb29405219f1325134a5e44feffb9580ff3b5f
 XASH3D_FWGS_COMMIT=e8d773eaa640f65db66164afbf5b867a5544b9b0
